@@ -6,6 +6,19 @@ app = Flask(__name__)
 
 API_URL = 'https://backend-challenge-winter-2017.herokuapp.com/customers.json'
 
+def get_api_resp(page_number):
+	page_query = '?page=%s' % page_number
+	endpoint = API_URL + page_query
+	response = requests.get(endpoint)
+	return response.json()
+
+
+def get_page_amount(pagination):
+	amount = pagination['total'] / float(pagination['per_page'])
+	return int(math.ceil(amount))
+
+
+
 @app.route('/')
 def hello_world():
 	cust_obj = get_api_resp(1)
@@ -22,17 +35,6 @@ def hello_world():
 	response_data = {'invalid_customers': invalid_customer_list}
 	return jsonify(response_data)
 
-def get_api_resp(page_number):
-	page_query = '?page=%s' % page_number
-	endpoint = API_URL + page_query
-	response = requests.get(endpoint)
-	return response.json()
-
-
-def get_page_amount(pagination):
-	amount = pagination['total'] / float(pagination['per_page'])
-	return int(math.ceil(amount))
-
 
 
 def get_invalid_cust_list(cust_obj):
@@ -44,7 +46,6 @@ def get_invalid_cust_list(cust_obj):
 	for j in range (0, len(customer_arr)):
 		# TODO: extract all validations
 		current_customer = customer_arr[j]
-		
 		issue_list = get_issues(current_customer, validation_arr)
 		if (len(issue_list) > 0):
 			cust_id = current_customer['id']
