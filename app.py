@@ -59,7 +59,7 @@ def get_issues(current_customer, validation_arr):
 	
 	# TODO: validate the whole customer
 	for k in range (0, len(validation_arr)):
-		key = validation_arr[k].keys()[0]
+		key = list(validation_arr[k].keys())[0]
 		validation = validation_arr[k][key]
 
 		if (not check(validation, current_customer[key])):
