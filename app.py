@@ -14,16 +14,13 @@ def hello_world():
 	
 	response_data = {}
 	invalid_customer_list = get_invalid_cust_list(cust_obj)
-	# TEMP
-	return get_invalid_cust_list(cust_obj)
-
 	for i in range (1, page_amount):
 		page_number = i+1
 		cust_obj = get_api_resp(page_number)
 		invalid_customer_list.extend(get_invalid_cust_list(cust_obj))
-	
+
 	response_data = {'invalid_customers': invalid_customer_list}
-	return str(response_data)
+	return jsonify(response_data)
 
 def get_api_resp(page_number):
 	page_query = '?page=%s' % page_number
@@ -42,47 +39,92 @@ def get_invalid_cust_list(cust_obj):
 	validation_arr = cust_obj['validations']
 	customer_arr = cust_obj['customers']
 
-	
-
 	invalid_list = []
 
 	for j in range (0, len(customer_arr)):
 		# TODO: extract all validations
 		current_customer = customer_arr[j]
+		
 		issue_list = get_issues(current_customer, validation_arr)
-		return issue_list
+		if (len(issue_list) > 0):
+			cust_id = current_customer['id']
+			invalid_obj = {"id": cust_id, "invalid_fields": issue_list}
+			invalid_list.append(invalid_obj)
+	return invalid_list
 
-	return validation_arr[0]
 
 def get_issues(current_customer, validation_arr):
 	issue_list = []
+	
 	# TODO: validate the whole customer
 	for k in range (0, len(validation_arr)):
 		key = validation_arr[k].keys()[0]
 		validation = validation_arr[k][key]
+
 		if (not check(validation, current_customer[key])):
 			issue_list.append(key)
 	return issue_list
 
+
 def check(validation, value):
 	# TODO: validation
-	return False
+	try:
+		req_bool = validation['required']
+	except Exception as e:
+		req_bool = False
+	
+	if (not check_required(req_bool, value)):
+		return False
 
-def is_length_valid(min, max, value):
+	try:
+		type_str = validation['type']
+	except Exception as e:
+		type_str = "any"
+
+	if ((type_str != "any") and (value != None) and (not is_type_valid(type_str, value))):
+		return False
+
+	if (type_str == "string"):
+		try:
+			length_validation = validation['length']
+		except Exception as e:
+			length_validation = None
+
+		if (length_validation):
+			try:
+				min_len = length_validation['min']
+			except:
+				min_len = None
+
+			try:
+				max_len = length_validation['max']
+			except:
+				max_len = None
+
+			return is_length_valid(min_len, max_len, value)
+		
+
+	return True
+
+def is_length_valid(min_len, max_len, value):
 	length = len(value)
-	if (length >= min and length <= max):
-		return True
-	return False
+	minimum_check = False
+	maximum_check = False
 
-def is_required(req_bool, value):
-	# make validation for checking if the value is there or not
+	if (min_len == None or length >= min_len):
+		minimum_check = True
+	if (max_len == None or length <= max_len):
+		maximum_check = True
+
+	return minimum_check and maximum_check
+
+def check_required(req_bool, value):	# make validation for checking if the value is there or not
 	if (req_bool):
 		if (value == None):
 			return False
 	return True
 
 def is_type_valid(type_value, value):
-	# TODO: validate type
 	if (type_value == "boolean"):
 		if (type(value) is bool):
 			return True
@@ -90,7 +132,7 @@ def is_type_valid(type_value, value):
 		if ((type(value) is int) or (type(value) is float)):
 			return True
 	if (type_value == "string"):
-		if ((type(value) is str)):
+		if ((type(value) is str) or (type(value) is unicode)):
 			return True
 	return False
 
@@ -102,3 +144,8 @@ def full():
 @app.route('/checkTypeFunction')
 def test_type():
 	return str(is_type_valid("number", "2313"))
+
+
+
+
+
